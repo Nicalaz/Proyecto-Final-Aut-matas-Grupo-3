@@ -3,9 +3,9 @@ import random
 import sys
 
 # --- Configuración general ---
-ANCHO, ALTO = 600, 600
+ANCHO, ALTO = 900, 900
 TAM_CELDA = 20
-FPS = 8 #velocidad de los autos
+FPS = 6 #velocidad de los autos
 
 COLOR_FONDO = (40, 40, 40)
 COLOR_CARRETERA = (90, 90, 90)
@@ -90,7 +90,7 @@ class Grid:
             l.update()
 
         # Sincronizar: uno verde → otro rojo
-        if len(self.lights) == 4:
+        if len(self.lights) == 8:
             # Encontrar los semáforos horizontales y verticales
             h_lights = [l for l in self.lights if l.horizontal]
             v_lights = [l for l in self.lights if not l.horizontal]
@@ -118,23 +118,33 @@ class Grid:
         for v in removed:
             self.vehicles.remove(v)
 
+        #CARRIL 2 IZQ-DER
         if random.random() < 0.2:
             # Horizontal - Carril superior
-            self.add_vehicle(0, self.rows // 2 - 1, 1, 0, COLOR_AUTO_H) # Fila cy - 1
-        if random.random() < 0.2:
-            # Horizontal - Carril inferior
-            self.add_vehicle(0, self.rows // 2, 1, 0, COLOR_AUTO_H) # Fila cy
+           self.add_vehicle(0, self.rows // 2 - 1, 1, 0, COLOR_AUTO_H) # Fila cy - 1
+        #CARRIL 1 IZQ-DER
         if random.random() < 0.2:
             self.add_vehicle(0, self.rows // 2-2, 1, 0, COLOR_AUTO_H)
+        #CARRIL 1 DER-IZQ
+        if random.random() < 0.2:
+            self.add_vehicle(self.cols -1, self.rows // 2 + 1, -1, 0, COLOR_AUTO_H)
+        #CARRIL 2 DER-IZQ
+        if random.random() < 0.2:
+            self.add_vehicle(self.cols -1, self.rows // 2 +2, -1, 0, COLOR_AUTO_H)      
 
+        #CARRIL 1 ABAJO-ARRIBA
         if random.random() < 0.2:
-            # Vertical - Carril izquierdo
-            self.add_vehicle(self.cols // 2, self.rows - 1, 0, -1, COLOR_AUTO_V) # Columna cx
-        if random.random() < 0.2:
-            # Vertical - Carril derecho
-            self.add_vehicle(self.cols // 2 + 1, self.rows - 1, 0, -1, COLOR_AUTO_V) # Columna cx + 1
+           self.add_vehicle(self.cols // 2 -2, self.rows - 1, 0, -1, COLOR_AUTO_V) # Columna cx + 1
+        #CARRIL 2 ABAJO-ARRIBA
         if random.random() < 0.2:
             self.add_vehicle(self.cols // 2 -1, self.rows - 1, 0, -1, COLOR_AUTO_V)
+        # CARRIL 1 ARRIBA-ABAJO
+        if random.random() < 0.2:
+            self.add_vehicle(self.cols // 2 + 2, 0, 0, 1, COLOR_AUTO_V)
+        # CARRIL 2 ARRIBA-ABAJO
+        if random.random() < 0.2:
+            self.add_vehicle(self.cols // 2 +1, 0, 0, 1, COLOR_AUTO_V)
+            
 
     def draw(self, screen):
         screen.fill(COLOR_FONDO)
@@ -179,17 +189,20 @@ def main():
     
     # Semáforos HORIZONTALES (controlan el flujo en X)
     # Carril superior (yendo a la derecha)
-    grid.add_light(cx - 3, cy - 1, horizontal=True, cycle=20) 
-    # Carril inferior (yendo a la derecha)
-    grid.add_light(cx - 3, cy, horizontal=True, cycle=20) 
-    grid.add_light(cx-3, cy-2, horizontal=True, cycle=20)
+    grid.add_light(cx - 4, cy - 1, horizontal=True, cycle=20)
+    grid.add_light(cx-4, cy-2, horizontal=True, cycle=20) 
+    # Carril inferior (yendo a la izquierda)
+    grid.add_light(cx +4, cy+1, horizontal=True, cycle=20)
+    grid.add_light(cx +4, cy+2 , horizontal=True, cycle=20) 
+    
 
-    # Semáforos VERTICALES (controlan el flujo en Y)
+    # Semáforos VERTICALES 
     # Carril izquierdo (yendo hacia arriba)
-    grid.add_light(cx, cy + 2, horizontal=False , cycle=20) 
-    # Carril derecho (yendo hacia arriba)
-    grid.add_light(cx + 1, cy + 2, horizontal=False , cycle=20)
-    grid.add_light(cx-1, cy +2, horizontal=False , cycle=20)
+    grid.add_light(cx-1, cy +3, horizontal=False , cycle=20) 
+    grid.add_light(cx-2, cy +3  , horizontal=False , cycle=20)
+    # Carril derecho (yendo hacia abajo)
+    grid.add_light(cx + 2, cy -3, horizontal=False , cycle=20)
+    grid.add_light(cx+1, cy -3, horizontal=False , cycle=20)
     
 
     running = True
