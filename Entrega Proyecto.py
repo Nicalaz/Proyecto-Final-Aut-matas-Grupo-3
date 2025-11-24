@@ -16,9 +16,26 @@ COLOR_SEM_VERDE = (0, 255, 0)
 COLOR_SEM_ROJO = (255, 0, 0)
 COLOR_BORDE = (60, 60, 60)
 
+explosiones = []  # Cada explosión = [x, y, timer]
+
+def dibujar_explosiones(screen):
+    for ex in list(explosiones):
+        x, y, timer = ex
+        px = x * TAM_CELDA + TAM_CELDA // 2
+        py = y * TAM_CELDA + TAM_CELDA // 2
+
+        pygame.draw.circle(screen, (255, 80, 0), (px, py), TAM_CELDA)
+        pygame.draw.circle(screen, (255, 200, 0), (px, py), TAM_CELDA // 2)
+
+        ex[2] -= 1
+        if ex[2] <= 0:
+            explosiones.remove(ex)
+
+
+
 # --- Clases principales ---
 class TrafficLight:
-    def __init__(self, x, y, horizontal=True, cycle_length=15):
+    def __init__(self, x, y, horizontal=True, cycle_length=30):
         self.x = x
         self.y = y
         self.state = 3  # 3 = verde, 4 = rojo
@@ -40,6 +57,7 @@ class Vehicle:
         self.dx = dx
         self.dy = dy
         self.color = color
+        self.tipo = "H" if dy == 0 else "V"
 
     def move(self, grid, lights):
         next_x = self.x + self.dx
@@ -59,13 +77,23 @@ class Vehicle:
                 # Semáforo vertical
                 if not light.horizontal and self.dx == 0 and light.x == self.x and light.y == next_y:
                     return False
+        # ---------- DETECCIÓN DE CHOQUE ----------
+        other = grid[next_y][next_x]
 
-        # Si la celda está vacía, avanzar
-        if grid[next_y][next_x] == 0:
-            grid[self.y][self.x] = 0
-            grid[next_y][next_x] = 1
-            self.x, self.y = next_x, next_y
-        return False
+        if other != 0:
+            # Solo chocar si son de tipo distinto (H vs V)
+            if isinstance(other, Vehicle) and other.tipo != self.tipo:
+                return "crash", other
+
+            return "stop"
+
+        # ---------- MOVER ----------
+        grid[self.y][self.x] = 0
+        grid[next_y][next_x] = self
+        self.x, self.y = next_x, next_y
+        return "move"
+    
+ 
 
 
 class Grid:
@@ -81,8 +109,10 @@ class Grid:
 
     def add_vehicle(self, x, y, dx, dy, color):
         if self.grid[y][x] == 0:
-            self.grid[y][x] = 1
-            self.vehicles.append(Vehicle(x, y, dx, dy, color))
+            v = Vehicle(x, y, dx, dy, color)
+            self.grid[y][x] = v
+            self.vehicles.append(v)
+
 
     def update(self):
         # Actualizar semáforos
@@ -95,56 +125,115 @@ class Grid:
             h_lights = [l for l in self.lights if l.horizontal]
             v_lights = [l for l in self.lights if not l.horizontal]
 
-            # Solo actualizar el contador y alternar el primer semáforo de un grupo (por ejemplo, h_lights[0])
-            # y luego sincronizar a los demás.
-            # Solo ejecutamos el .update() en uno de cada grupo para controlar el ciclo
-            
-            # Asegurar que todos los horizontales tengan el mismo estado que h_lights[0]
             for l in h_lights[1:]:
                 l.state = h_lights[0].state 
 
             # Asegurar que todos los verticales tengan el estado opuesto a los horizontales
-            # Esto asume que el primer semáforo vertical es v_lights[0]
             v_lights[0].state = 4 if h_lights[0].state == 3 else 3
             for l in v_lights[1:]:
                 l.state = v_lights[0].state
 
         # Mover vehículos
-        removed = []
+        # ---------- SISTEMA DE RESERVAS (ANTI-STUCK) ----------
+        deseos = {}   # (nx, ny) -> [vehículos que quieren entrar]
+
+        # PRIMERA PASADA: cada vehículo dice a dónde quiere ir
         for v in self.vehicles:
-            out = v.move(self.grid, self.lights)
-            if out:
-                removed.append(v)
-        for v in removed:
-            self.vehicles.remove(v)
+            nx = v.x + v.dx
+            ny = v.y + v.dy
+
+            # Salida por borde
+            if not (0 <= nx < self.cols and 0 <= ny < self.rows):
+                deseos[(v.x, v.y)] = deseos.get((v.x, v.y), []) + [(v, "out")]
+                continue
+
+            # Semáforos
+            detener = False
+            for l in self.lights:
+                if l.state == 4:  # Rojo
+                    if l.horizontal and v.dy == 0 and l.y == v.y and l.x == nx:
+                        detener = True
+                        break
+                    if not l.horizontal and v.dx == 0 and l.x == v.x and l.y == ny:
+                        detener = True
+                        break
+
+            if detener:
+                deseos[(v.x, v.y)] = deseos.get((v.x, v.y), []) + [(v, "stop")]
+                continue
+
+            # Colisión
+            otro = self.grid[ny][nx]
+            if isinstance(otro, Vehicle) and otro.tipo != v.tipo:
+                deseos[(nx, ny)] = deseos.get((nx, ny), []) + [(v, ("crash", otro))]
+            else:
+                deseos[(nx, ny)] = deseos.get((nx, ny), []) + [(v, "move")]
+
+        # SEGUNDA PASADA: resolver conflictos
+        mover = []
+        eliminar = set()
+
+        for destino, lista in deseos.items():
+            if len(lista) == 1:
+                v, accion = lista[0]
+            else:
+                # Si varios quieren la misma celda → permitir solo 1
+                v, accion = random.choice(lista)
+
+            if accion == "out":
+                eliminar.add(v)
+            elif accion == "stop":
+                pass
+            elif isinstance(accion, tuple) and accion[0] == "crash":
+                otro = accion[1]
+                explosiones.append([v.x, v.y, 5])
+                eliminar.add(v)
+                eliminar.add(otro)
+            elif accion == "move":
+                mover.append((v, destino))
+
+        # TERCERA PASADA: aplicar movimientos aprobados
+        for v in self.vehicles:
+            self.grid[v.y][v.x] = 0  # limpiar celdas antes de mover
+
+        for v, (nx, ny) in mover:
+            v.x, v.y = nx, ny
+            self.grid[ny][nx] = v
+
+        # borrar vehículos muertos
+        for v in list(self.vehicles):
+            if v in eliminar:
+                if self.grid[v.y][v.x] == v:
+                    self.grid[v.y][v.x] = 0
+                self.vehicles.remove(v)
 
         #CARRIL 2 IZQ-DER
-        if random.random() < 0.2:
+        if random.random() < 0.05:
             # Horizontal - Carril superior
            self.add_vehicle(0, self.rows // 2 - 1, 1, 0, COLOR_AUTO_H) # Fila cy - 1
         #CARRIL 1 IZQ-DER
-        if random.random() < 0.2:
+        if random.random() < 0.1:
             self.add_vehicle(0, self.rows // 2-2, 1, 0, COLOR_AUTO_H)
         #CARRIL 1 DER-IZQ
-        if random.random() < 0.2:
+        if random.random() < 0.1:
             self.add_vehicle(self.cols -1, self.rows // 2 + 1, -1, 0, COLOR_AUTO_H)
         #CARRIL 2 DER-IZQ
-        if random.random() < 0.2:
+        if random.random() < 0.05:
             self.add_vehicle(self.cols -1, self.rows // 2 +2, -1, 0, COLOR_AUTO_H)      
 
         #CARRIL 1 ABAJO-ARRIBA
-        if random.random() < 0.2:
+        if random.random() < 0.1:
            self.add_vehicle(self.cols // 2 -2, self.rows - 1, 0, -1, COLOR_AUTO_V) # Columna cx + 1
         #CARRIL 2 ABAJO-ARRIBA
-        if random.random() < 0.2:
+        if random.random() < 0.07:
             self.add_vehicle(self.cols // 2 -1, self.rows - 1, 0, -1, COLOR_AUTO_V)
         # CARRIL 1 ARRIBA-ABAJO
-        if random.random() < 0.2:
+        if random.random() < 0.07:
             self.add_vehicle(self.cols // 2 + 2, 0, 0, 1, COLOR_AUTO_V)
         # CARRIL 2 ARRIBA-ABAJO
-        if random.random() < 0.2:
+        if random.random() < 0.09:
             self.add_vehicle(self.cols // 2 +1, 0, 0, 1, COLOR_AUTO_V)
-            
+
 
     def draw(self, screen):
         screen.fill(COLOR_FONDO)
@@ -172,7 +261,7 @@ class Grid:
         for light in self.lights:
             color = COLOR_SEM_VERDE if light.state == 3 else COLOR_SEM_ROJO
             pygame.draw.circle(screen, color, ((light.x + 0.5) * TAM_CELDA, (light.y + 0.5) * TAM_CELDA), TAM_CELDA // 2)
-
+        dibujar_explosiones(screen)
 
 # --- Bucle principal ---
 def main():
@@ -187,20 +276,16 @@ def main():
 
     cx, cy = columnas // 2, filas // 2
     
-    # Semáforos HORIZONTALES (controlan el flujo en X)
-    # Carril superior (yendo a la derecha)
+    # Semáforos HORIZONTALES 
     grid.add_light(cx - 4, cy - 1, horizontal=True, cycle=20)
     grid.add_light(cx-4, cy-2, horizontal=True, cycle=20) 
-    # Carril inferior (yendo a la izquierda)
     grid.add_light(cx +4, cy+1, horizontal=True, cycle=20)
     grid.add_light(cx +4, cy+2 , horizontal=True, cycle=20) 
     
 
     # Semáforos VERTICALES 
-    # Carril izquierdo (yendo hacia arriba)
     grid.add_light(cx-1, cy +3, horizontal=False , cycle=20) 
     grid.add_light(cx-2, cy +3  , horizontal=False , cycle=20)
-    # Carril derecho (yendo hacia abajo)
     grid.add_light(cx + 2, cy -3, horizontal=False , cycle=20)
     grid.add_light(cx+1, cy -3, horizontal=False , cycle=20)
     
