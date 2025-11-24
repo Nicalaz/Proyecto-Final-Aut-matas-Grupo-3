@@ -90,11 +90,24 @@ class Grid:
             l.update()
 
         # Sincronizar: uno verde → otro rojo
-        if len(self.lights) == 2:
-            if self.lights[0].state == 3:
-                self.lights[1].state = 4
-            else:
-                self.lights[1].state = 3
+        if len(self.lights) == 4:
+            # Encontrar los semáforos horizontales y verticales
+            h_lights = [l for l in self.lights if l.horizontal]
+            v_lights = [l for l in self.lights if not l.horizontal]
+
+            # Solo actualizar el contador y alternar el primer semáforo de un grupo (por ejemplo, h_lights[0])
+            # y luego sincronizar a los demás.
+            # Solo ejecutamos el .update() en uno de cada grupo para controlar el ciclo
+            
+            # Asegurar que todos los horizontales tengan el mismo estado que h_lights[0]
+            for l in h_lights[1:]:
+                l.state = h_lights[0].state 
+
+            # Asegurar que todos los verticales tengan el estado opuesto a los horizontales
+            # Esto asume que el primer semáforo vertical es v_lights[0]
+            v_lights[0].state = 4 if h_lights[0].state == 3 else 3
+            for l in v_lights[1:]:
+                l.state = v_lights[0].state
 
         # Mover vehículos
         removed = []
@@ -105,13 +118,23 @@ class Grid:
         for v in removed:
             self.vehicles.remove(v)
 
-        # Spawnear nuevos autos
         if random.random() < 0.2:
-            # Horizontal
-            self.add_vehicle(0, self.rows // 2, 1, 0, COLOR_AUTO_H)
+            # Horizontal - Carril superior
+            self.add_vehicle(0, self.rows // 2 - 1, 1, 0, COLOR_AUTO_H) # Fila cy - 1
         if random.random() < 0.2:
-            # Vertical
-            self.add_vehicle(self.cols // 2, self.rows - 1, 0, -1, COLOR_AUTO_V)
+            # Horizontal - Carril inferior
+            self.add_vehicle(0, self.rows // 2, 1, 0, COLOR_AUTO_H) # Fila cy
+        if random.random() < 0.2:
+            self.add_vehicle(0, self.rows // 2-2, 1, 0, COLOR_AUTO_H)
+
+        if random.random() < 0.2:
+            # Vertical - Carril izquierdo
+            self.add_vehicle(self.cols // 2, self.rows - 1, 0, -1, COLOR_AUTO_V) # Columna cx
+        if random.random() < 0.2:
+            # Vertical - Carril derecho
+            self.add_vehicle(self.cols // 2 + 1, self.rows - 1, 0, -1, COLOR_AUTO_V) # Columna cx + 1
+        if random.random() < 0.2:
+            self.add_vehicle(self.cols // 2 -1, self.rows - 1, 0, -1, COLOR_AUTO_V)
 
     def draw(self, screen):
         screen.fill(COLOR_FONDO)
@@ -119,20 +142,20 @@ class Grid:
 
         for y in range(self.rows):
             for x in range(self.cols):
-                # Base de fondo
+                
                 rect = pygame.Rect(x * TAM_CELDA, y * TAM_CELDA, TAM_CELDA, TAM_CELDA)
-                color = COLOR_FONDO
+                color = COLOR_FONDO 
 
                 # Carreteras
                 if y == cy or x == cx:
                     color = COLOR_INTERSECCION if (x == cx and y == cy) else COLOR_CARRETERA
-
-                pygame.draw.rect(screen, color, rect)
-                pygame.draw.rect(screen, COLOR_BORDE, rect, 1)  # bordes visibles
-
+                
+                pygame.draw.rect(screen, color, rect) 
+                pygame.draw.rect(screen, COLOR_BORDE, rect, 1) 
+                
         # Dibujar autos
         for v in self.vehicles:
-            rect = pygame.Rect(v.x * TAM_CELDA + 2, v.y * TAM_CELDA + 2, TAM_CELDA - 4, TAM_CELDA - 4)
+            rect = pygame.Rect(v.x * TAM_CELDA + 3, v.y * TAM_CELDA + 3, TAM_CELDA - 4, TAM_CELDA - 4)
             pygame.draw.rect(screen, v.color, rect)
 
         # Dibujar semáforos
@@ -153,8 +176,20 @@ def main():
     grid = Grid(filas, columnas)
 
     cx, cy = columnas // 2, filas // 2
-    grid.add_light(cx - 1, cy, horizontal=True, cycle=20)
-    grid.add_light(cx, cy + 1, horizontal=False , cycle=20)
+    
+    # Semáforos HORIZONTALES (controlan el flujo en X)
+    # Carril superior (yendo a la derecha)
+    grid.add_light(cx - 3, cy - 1, horizontal=True, cycle=20) 
+    # Carril inferior (yendo a la derecha)
+    grid.add_light(cx - 3, cy, horizontal=True, cycle=20) 
+    grid.add_light(cx-3, cy-2, horizontal=True, cycle=20)
+
+    # Semáforos VERTICALES (controlan el flujo en Y)
+    # Carril izquierdo (yendo hacia arriba)
+    grid.add_light(cx, cy + 2, horizontal=False , cycle=20) 
+    # Carril derecho (yendo hacia arriba)
+    grid.add_light(cx + 1, cy + 2, horizontal=False , cycle=20)
+    grid.add_light(cx-1, cy +2, horizontal=False , cycle=20)
     
 
     running = True
