@@ -235,7 +235,7 @@ class Grid:
             self.add_vehicle(self.cols // 2 +1, 0, 0, 1, COLOR_AUTO_V)
 
 
-     def draw(self, screen):
+    def draw(self, screen):
         screen.fill(COLOR_FONDO)
         cx, cy = self.cols // 2, self.rows // 2
 
