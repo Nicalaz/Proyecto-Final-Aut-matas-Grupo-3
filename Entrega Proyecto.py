@@ -235,23 +235,63 @@ class Grid:
             self.add_vehicle(self.cols // 2 +1, 0, 0, 1, COLOR_AUTO_V)
 
 
-    def draw(self, screen):
+     def draw(self, screen):
         screen.fill(COLOR_FONDO)
         cx, cy = self.cols // 2, self.rows // 2
 
         for y in range(self.rows):
             for x in range(self.cols):
-                
+
                 rect = pygame.Rect(x * TAM_CELDA, y * TAM_CELDA, TAM_CELDA, TAM_CELDA)
-                color = COLOR_FONDO 
+
+                # Fondo general
+                color = COLOR_FONDO
 
                 # Carreteras
                 if y == cy or x == cx:
                     color = COLOR_INTERSECCION if (x == cx and y == cy) else COLOR_CARRETERA
-                
-                pygame.draw.rect(screen, color, rect) 
-                pygame.draw.rect(screen, COLOR_BORDE, rect, 1) 
-                
+
+                pygame.draw.rect(screen, color, rect)
+                pygame.draw.rect(screen, COLOR_BORDE, rect, 1)
+
+                # -------------------------
+                # LÍNEAS BLANCAS EN LOS BORDES DE LA CALLE
+                # -------------------------
+
+                # Carretera horizontal (ambos sentidos)
+                if y in (cy - 2, cy - 1, cy, cy + 1, cy + 3):
+                    # Línea superior
+                    pygame.draw.line(
+                        screen, (255, 255, 255),
+                        (x * TAM_CELDA, (cy - 2) * TAM_CELDA),
+                        ((x + 1) * TAM_CELDA, (cy - 2) * TAM_CELDA),
+                        2
+                    )
+                    # Línea inferior
+                    pygame.draw.line(
+                        screen, (255, 255, 255),
+                        (x * TAM_CELDA, (cy + 3) * TAM_CELDA),
+                        ((x + 1) * TAM_CELDA, (cy + 3) * TAM_CELDA),
+                        2
+                    )
+
+                # Carretera vertical (ambos sentidos)
+                if x in (cx - 2, cx - 1, cx, cx + 1, cx + 3):
+                    # Línea izquierda
+                    pygame.draw.line(
+                        screen, (255, 255, 255),
+                        ((cx - 2) * TAM_CELDA, y * TAM_CELDA),
+                        ((cx - 2) * TAM_CELDA, (y + 1) * TAM_CELDA),
+                        2
+                    )
+                    # Línea derecha
+                    pygame.draw.line(
+                        screen, (255, 255, 255),
+                        ((cx + 3) * TAM_CELDA, y * TAM_CELDA),
+                        ((cx + 3) * TAM_CELDA, (y + 1) * TAM_CELDA),
+                        2
+                    )
+
         # Dibujar autos
         for v in self.vehicles:
             rect = pygame.Rect(v.x * TAM_CELDA + 3, v.y * TAM_CELDA + 3, TAM_CELDA - 4, TAM_CELDA - 4)
@@ -260,7 +300,13 @@ class Grid:
         # Dibujar semáforos
         for light in self.lights:
             color = COLOR_SEM_VERDE if light.state == 3 else COLOR_SEM_ROJO
-            pygame.draw.circle(screen, color, ((light.x + 0.5) * TAM_CELDA, (light.y + 0.5) * TAM_CELDA), TAM_CELDA // 2)
+            pygame.draw.circle(
+                screen,
+                color,
+                ((light.x + 0.5) * TAM_CELDA, (light.y + 0.5) * TAM_CELDA),
+                TAM_CELDA // 2
+            )
+
         dibujar_explosiones(screen)
 
 # --- Bucle principal ---
