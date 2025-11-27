@@ -103,6 +103,7 @@ class Grid:
         self.grid = [[0 for _ in range(columnas)] for _ in range(filas)]
         self.vehicles = []
         self.lights = []
+        self.collision_count = 0  #contador de colisiones
 
     def add_light(self, x, y, horizontal=True, cycle=15):
         self.lights.append(TrafficLight(x, y, horizontal, cycle))
@@ -195,6 +196,7 @@ class Grid:
                 explosiones.append([v.x, v.y, 5])
                 eliminar.add(v)
                 eliminar.add(otro)
+                self.collision_count += 1  #Sumamos una colisión
             elif accion == "move":
                 mover.append((v, destino))
 
@@ -215,7 +217,6 @@ class Grid:
 
         #CARRIL 2 IZQ-DER
         if random.random() < 0.05:
-            # Horizontal - Carril superior
            self.add_vehicle(0, self.rows // 2 - 1, 1, 0, COLOR_AUTO_H) # Fila cy - 1
         #CARRIL 1 IZQ-DER
         if random.random() < 0.1:
@@ -314,7 +315,8 @@ class Grid:
             )
 
         dibujar_explosiones(screen)
-        #Botones inicio, pausa y reinicio
+
+#Botones inicio, pausa y reinicio
 def draw_button(screen, rect, text):
         pygame.draw.rect(screen, (255,255,255), rect)
         pygame.draw.rect(screen, (255,255,255), rect, 3)
@@ -330,6 +332,8 @@ def main():
     screen = pygame.display.set_mode((ANCHO, ALTO))
     pygame.display.set_caption("Simulador de Tráfico - Intersección")
     clock = pygame.time.Clock()
+
+    font = pygame.font.SysFont(None, 30)  #Fuente para el contador
 
     # Estados
     running = True
@@ -371,7 +375,7 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-            # clic botones  <- cuidado con la indentación: debe alinearse con el if anterior
+            # clic botones
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
 
@@ -396,7 +400,15 @@ def main():
 
         grid.draw(screen)
 
-        # Dibujar botones (cambiamos texto del botón pausa si está pausado)
+        #Caja blanca y texto del contador debajo de los botones
+        contador_rect = pygame.Rect(20, 200, 200, 50)
+        pygame.draw.rect(screen, (255, 255, 255), contador_rect)
+        pygame.draw.rect(screen, (0, 0, 0), contador_rect, 2)
+
+        texto = font.render(f"Colisiones: {grid.collision_count}", True, (0, 0, 0))
+        screen.blit(texto, (contador_rect.x + 10, contador_rect.y + 10))
+
+        # Dibujar botones
         draw_button(screen, boton_iniciar, "INICIAR")
         draw_button(screen, boton_reset, "REINICIAR")
         draw_button(screen, boton_pausa, "REANUDAR" if paused else "PAUSA")
