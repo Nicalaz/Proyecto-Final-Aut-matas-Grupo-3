@@ -314,42 +314,93 @@ class Grid:
             )
 
         dibujar_explosiones(screen)
+        #Botones inicio, pausa y reinicio
+    def draw_button(screen, rect, text):
+        pygame.draw.rect(screen, (255,255,255), rect)
+        pygame.draw.rect(screen, (255,255,255), rect, 3)
+        pygame.draw.rect(screen, (255,255,255), rect, border_radius=10)
 
+        font = pygame.font.SysFont(None, 36)
+        label = font.render(text, True, (0,0,0))
+        screen.blit(label, (rect.x + 10, rect.y + 10))
+        
 # --- Bucle principal ---
 def main():
     pygame.init()
     screen = pygame.display.set_mode((ANCHO, ALTO))
-    pygame.display.set_caption("Simulador de Tráfico - Intersección (Autómatas Celulares)")
+    pygame.display.set_caption("Simulador de Tráfico - Intersección")
     clock = pygame.time.Clock()
+
+    # Estados
+    running = True
+    started = False
+    paused = False
 
     filas = ALTO // TAM_CELDA
     columnas = ANCHO // TAM_CELDA
-    grid = Grid(filas, columnas)
 
-    cx, cy = columnas // 2, filas // 2
-    
-    # Semáforos HORIZONTALES 
-    grid.add_light(cx - 4, cy - 1, horizontal=True, cycle=20)
-    grid.add_light(cx-4, cy-2, horizontal=True, cycle=20) 
-    grid.add_light(cx +4, cy+1, horizontal=True, cycle=20)
-    grid.add_light(cx +4, cy+2 , horizontal=True, cycle=20) 
-    
+    def crear_grid():
+        g = Grid(filas, columnas)
+        cx, cy = columnas // 2, filas // 2
 
-    # Semáforos VERTICALES 
-    grid.add_light(cx-1, cy +3, horizontal=False , cycle=20) 
-    grid.add_light(cx-2, cy +3  , horizontal=False , cycle=20)
-    grid.add_light(cx + 2, cy -3, horizontal=False , cycle=20)
-    grid.add_light(cx+1, cy -3, horizontal=False , cycle=20)
-    
+        # H
+        g.add_light(cx - 4, cy - 1, True, 20)
+        g.add_light(cx - 4, cy - 2, True, 20)
+        g.add_light(cx + 4, cy + 1, True, 20)
+        g.add_light(cx + 4, cy + 2, True, 20)
 
-    running = True
+        # V
+        g.add_light(cx - 1, cy + 3, False, 20)
+        g.add_light(cx - 2, cy + 3, False, 20)
+        g.add_light(cx + 2, cy - 3, False, 20)
+        g.add_light(cx + 1, cy - 3, False, 20)
+
+        return g
+
+    grid = crear_grid()
+
+    # ----------------------
+    # BOTONES
+    # ----------------------
+    boton_iniciar = pygame.Rect(20, 20, 150, 50)
+    boton_reset = pygame.Rect(20, 80, 150, 50)
+    boton_pausa = pygame.Rect(20, 140, 150, 50)
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        grid.update()
+            # clic botones  <- cuidado con la indentación: debe alinearse con el if anterior
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+
+                if boton_iniciar.collidepoint(mouse_pos):
+                    started = True
+                    paused = False  # por si se inicia después de una pausa
+
+                if boton_reset.collidepoint(mouse_pos):
+                    grid = crear_grid()
+                    explosiones.clear()
+                    started = False
+                    paused = False
+
+                if boton_pausa.collidepoint(mouse_pos):
+                    # solo permitir pausar si ya inició
+                    if started:
+                        paused = not paused
+
+        # SI LA SIMULACIÓN ESTÁ ACTIVADA Y NO ESTÁ EN PAUSA → avanzar
+        if started and not paused:
+            grid.update()
+
         grid.draw(screen)
+
+        # Dibujar botones (cambiamos texto del botón pausa si está pausado)
+        draw_button(screen, boton_iniciar, "INICIAR")
+        draw_button(screen, boton_reset, "REINICIAR")
+        draw_button(screen, boton_pausa, "REANUDAR" if paused else "PAUSA")
+
         pygame.display.flip()
         clock.tick(FPS)
 
