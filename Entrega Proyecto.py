@@ -215,8 +215,9 @@ class Grid:
                     self.grid[v.y][v.x] = 0
                 self.vehicles.remove(v)
 
-        #CARRIL 2 IZQ-DER
+ 
         if random.random() < 0.05:
+            # Horizontal - Carril superior
            self.add_vehicle(0, self.rows // 2 - 1, 1, 0, COLOR_AUTO_H) # Fila cy - 1
         #CARRIL 1 IZQ-DER
         if random.random() < 0.1:
@@ -315,8 +316,7 @@ class Grid:
             )
 
         dibujar_explosiones(screen)
-
-#Botones inicio, pausa y reinicio
+        #Botones inicio, pausa y reinicio
 def draw_button(screen, rect, text):
         pygame.draw.rect(screen, (255,255,255), rect)
         pygame.draw.rect(screen, (255,255,255), rect, 3)
@@ -330,7 +330,7 @@ def draw_button(screen, rect, text):
 def main():
     pygame.init()
     screen = pygame.display.set_mode((ANCHO, ALTO))
-    pygame.display.set_caption("Simulador de Tráfico - Intersección")
+    pygame.display.set_caption("Simulador de Tráfico - Intersección (Autómatas Celulares)")
     clock = pygame.time.Clock()
 
     font = pygame.font.SysFont(None, 30)  #Fuente para el contador
@@ -343,25 +343,22 @@ def main():
     filas = ALTO // TAM_CELDA
     columnas = ANCHO // TAM_CELDA
 
-    def crear_grid():
-        g = Grid(filas, columnas)
-        cx, cy = columnas // 2, filas // 2
+    grid = Grid(filas, columnas)
 
-        # H
-        g.add_light(cx - 4, cy - 1, True, 20)
-        g.add_light(cx - 4, cy - 2, True, 20)
-        g.add_light(cx + 4, cy + 1, True, 20)
-        g.add_light(cx + 4, cy + 2, True, 20)
+    cx, cy = columnas // 2, filas // 2
+    
+    # Semáforos HORIZONTALES 
+    grid.add_light(cx - 4, cy - 1, horizontal=True, cycle=20)
+    grid.add_light(cx-4, cy-2, horizontal=True, cycle=20) 
+    grid.add_light(cx +4, cy+1, horizontal=True, cycle=20)
+    grid.add_light(cx +4, cy+2 , horizontal=True, cycle=20) 
 
-        # V
-        g.add_light(cx - 1, cy + 3, False, 20)
-        g.add_light(cx - 2, cy + 3, False, 20)
-        g.add_light(cx + 2, cy - 3, False, 20)
-        g.add_light(cx + 1, cy - 3, False, 20)
 
-        return g
-
-    grid = crear_grid()
+    # Semáforos VERTICALES 
+    grid.add_light(cx-1, cy +3, horizontal=False , cycle=20) 
+    grid.add_light(cx-2, cy +3  , horizontal=False , cycle=20)
+    grid.add_light(cx + 2, cy -3, horizontal=False , cycle=20)
+    grid.add_light(cx+1, cy -3, horizontal=False , cycle=20)
 
     # ----------------------
     # BOTONES
@@ -375,7 +372,7 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-            # clic botones
+            # clic botones  <- cuidado con la indentación: debe alinearse con el if anterior
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
 
@@ -384,10 +381,23 @@ def main():
                     paused = False  # por si se inicia después de una pausa
 
                 if boton_reset.collidepoint(mouse_pos):
-                    grid = crear_grid()
+                    grid = Grid(filas, columnas)
                     explosiones.clear()
                     started = False
                     paused = False
+
+                    cx, cy = columnas // 2, filas // 2
+
+                    # Semáforos
+                    grid.add_light(cx - 4, cy - 1, horizontal=True, cycle=20)
+                    grid.add_light(cx - 4, cy - 2, horizontal=True, cycle=20)
+                    grid.add_light(cx + 4, cy + 1, horizontal=True, cycle=20)
+                    grid.add_light(cx + 4, cy + 2, horizontal=True, cycle=20)
+
+                    grid.add_light(cx - 1, cy + 3, horizontal=False, cycle=20)
+                    grid.add_light(cx - 2, cy + 3, horizontal=False, cycle=20)
+                    grid.add_light(cx + 2, cy - 3, horizontal=False, cycle=20)
+                    grid.add_light(cx + 1, cy - 3, horizontal=False, cycle=20)
 
                 if boton_pausa.collidepoint(mouse_pos):
                     # solo permitir pausar si ya inició
@@ -399,8 +409,8 @@ def main():
             grid.update()
 
         grid.draw(screen)
-
-        #Caja blanca y texto del contador debajo de los botones
+        
+         #Caja blanca y texto del contador debajo de los botones
         contador_rect = pygame.Rect(20, 200, 200, 50)
         pygame.draw.rect(screen, (255, 255, 255), contador_rect)
         pygame.draw.rect(screen, (0, 0, 0), contador_rect, 2)
@@ -408,7 +418,7 @@ def main():
         texto = font.render(f"Colisiones: {grid.collision_count}", True, (0, 0, 0))
         screen.blit(texto, (contador_rect.x + 10, contador_rect.y + 10))
 
-        # Dibujar botones
+        # Dibujar botones 
         draw_button(screen, boton_iniciar, "INICIAR")
         draw_button(screen, boton_reset, "REINICIAR")
         draw_button(screen, boton_pausa, "REANUDAR" if paused else "PAUSA")
@@ -419,6 +429,9 @@ def main():
     pygame.quit()
     sys.exit()
 
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
