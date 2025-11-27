@@ -5,7 +5,7 @@ import sys
 # --- Configuración general ---
 ANCHO, ALTO = 900, 900
 TAM_CELDA = 20
-FPS = 6 #velocidad de los autos
+FPS = 8 #velocidad de los autos
 
 COLOR_FONDO = (40, 40, 40)
 COLOR_CARRETERA = (90, 90, 90)
@@ -134,7 +134,7 @@ class Grid:
                 l.state = v_lights[0].state
 
         # Mover vehículos
-        # ---------- SISTEMA DE RESERVAS (ANTI-STUCK) ----------
+        # SISTEMA PARA EVITAR STUCKS
         deseos = {}   # (nx, ny) -> [vehículos que quieren entrar]
 
         # PRIMERA PASADA: cada vehículo dice a dónde quiere ir
@@ -164,9 +164,15 @@ class Grid:
 
             # Colisión
             otro = self.grid[ny][nx]
-            if isinstance(otro, Vehicle) and otro.tipo != v.tipo:
-                deseos[(nx, ny)] = deseos.get((nx, ny), []) + [(v, ("crash", otro))]
+            if isinstance(otro, Vehicle):
+                if otro.tipo != v.tipo:
+                # Choque con perpendicular
+                    deseos[(nx, ny)] = deseos.get((nx, ny), []) + [(v, ("crash", otro))]
+                else:
+                 # Mismo tipo adelante -> detenerse para formar cola
+                    deseos[(v.x, v.y)] = deseos.get((v.x, v.y), []) + [(v, "stop")]
             else:
+                # Celda libre -> moverse
                 deseos[(nx, ny)] = deseos.get((nx, ny), []) + [(v, "move")]
 
         # SEGUNDA PASADA: resolver conflictos
@@ -193,12 +199,12 @@ class Grid:
                 mover.append((v, destino))
 
         # TERCERA PASADA: aplicar movimientos aprobados
-        for v in self.vehicles:
-            self.grid[v.y][v.x] = 0  # limpiar celdas antes de mover
+        for v, (nx, ny) in mover:
+            self.grid[v.y][v.x] = 0
 
         for v, (nx, ny) in mover:
             v.x, v.y = nx, ny
-            self.grid[ny][nx] = v
+            self.grid[ny][nx] = v  
 
         # borrar vehículos muertos
         for v in list(self.vehicles):
