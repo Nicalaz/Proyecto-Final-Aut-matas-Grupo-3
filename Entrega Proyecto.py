@@ -315,7 +315,7 @@ class Grid:
 
         dibujar_explosiones(screen)
         #Botones inicio, pausa y reinicio
-    def draw_button(screen, rect, text):
+def draw_button(screen, rect, text):
         pygame.draw.rect(screen, (255,255,255), rect)
         pygame.draw.rect(screen, (255,255,255), rect, 3)
         pygame.draw.rect(screen, (255,255,255), rect, border_radius=10)
