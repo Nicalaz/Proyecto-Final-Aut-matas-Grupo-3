@@ -1,4 +1,4 @@
-﻿# Proyecto-Final-Aut-matas-Grupo-3
+﻿# Proyecto-Final-Autómatas-Grupo-3
 
 ## Simulador de Tráfico con Autómatas Celulares
 
