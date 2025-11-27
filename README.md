@@ -2,7 +2,7 @@
 
 ## Simulador de tráfico y colisiones en cruces con semáforos
 
-En este proyecto se realizó la simulación de una intersección vial controlada por semáforos usando autómatas celulares, modelando la generación de vehículos en cuatro sentidos, flujo o detención del tráfico según el color de los semáforos y colisiones.
+En este proyecto se realizó la simulación de una intersección vial controlada por semáforos mediante el uso de autómatas celulares, modelando la generación de vehículos en cuatro sentidos, flujo o detención del tráfico según el color de los semáforos y colisiones.
 
 ## Funcionamiento
 
@@ -17,3 +17,4 @@ En este proyecto se realizó la simulación de una intersección vial controlada
 -	Si la celda siguiente está ocupada por un vehículo del mismo tipo compiten, se elige uno solo al azar para ocuparla.
 -	Si la celda siguiente está ocupada por un vehículo de otro tipo se presenta una colisión.
 -	Si la celda siguiente está fuera de la cuadrícula, reaparece al inicio.
+
