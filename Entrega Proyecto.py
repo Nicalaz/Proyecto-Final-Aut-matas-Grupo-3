@@ -5,7 +5,7 @@ import sys
 # --- Configuración general ---
 ANCHO, ALTO = 900, 900
 TAM_CELDA = 20
-FPS = 30 #velocidad de los autos
+FPS = 6 #velocidad de los autos
 
 COLOR_FONDO = (40, 40, 40)
 COLOR_CARRETERA = (90, 90, 90)
