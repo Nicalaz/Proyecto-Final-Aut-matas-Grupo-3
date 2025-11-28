@@ -5,7 +5,7 @@ import sys
 # --- Configuración general ---
 ANCHO, ALTO = 900, 900
 TAM_CELDA = 20
-FPS = 6 #velocidad de los autos
+FPS = 10 #velocidad de los autos
 
 COLOR_FONDO = (40, 40, 40)
 COLOR_CARRETERA = (90, 90, 90)
@@ -49,6 +49,45 @@ class TrafficLight:
             self.counter = 0
             self.state = 4 if self.state == 3 else 3  # alternar
 
+class Slider:
+    def __init__(self, x, y, width, height, min_val=0, max_val=100, start_val=30):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.min_val = min_val
+        self.max_val = max_val
+        self.value = start_val
+
+        self.knob_radius = max(6, height // 2)
+        # knob_x stores integer pixel coordinate
+        self.knob_x = int(x + (start_val - min_val) / (max_val - min_val) * width)
+        self.dragging = False
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mx, my = event.pos
+            if (mx - self.knob_x) ** 2 + (my - self.rect.centery) ** 2 <= (self.knob_radius + 2) ** 2:
+                self.dragging = True
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.dragging = False
+        elif event.type == pygame.MOUSEMOTION and self.dragging:
+            mx = event.pos[0]
+            # limitar dentro de la barra
+            self.knob_x = max(self.rect.left, min(mx, self.rect.right))
+            rel = (self.knob_x - self.rect.left) / self.rect.width
+            self.value = int(self.min_val + rel * (self.max_val - self.min_val))
+
+    def draw(self, screen):
+        # barra
+        pygame.draw.rect(screen, (180, 180, 180), self.rect)
+        pygame.draw.rect(screen, (80, 80, 80), self.rect, 2)
+
+        # knob
+        pygame.draw.circle(screen, (200, 30, 30), (self.knob_x, self.rect.centery), self.knob_radius)
+        pygame.draw.circle(screen, (0, 0, 0), (self.knob_x, self.rect.centery), self.knob_radius, 2)
+
+        # texto del valor
+        font = pygame.font.SysFont(None, 22)
+        txt = font.render(f"Autos: {self.value} %", True, (255, 255, 255))
+        screen.blit(txt, (self.rect.x, self.rect.y - 22))
 
 class Vehicle:
     def __init__(self, x, y, dx, dy, color):
@@ -238,32 +277,35 @@ class Grid:
                     self.grid[v.y][v.x] = 0
                 self.vehicles.remove(v)
 
+        #Controlar el spawn de vehiculos
+        s = max(0.0, min(1.0, self.spawn_scale))
  
-        if random.random() < 0.05:
+        if random.random() < 0.15 * s:
             # Horizontal - Carril superior
            self.add_vehicle(0, self.rows // 2 - 1, 1, 0, COLOR_AUTO_H) # Fila cy - 1
         #CARRIL 1 IZQ-DER
-        if random.random() < 0.1:
+        if random.random() < 0.25 * s:
             self.add_vehicle(0, self.rows // 2-2, 1, 0, COLOR_AUTO_H)
         #CARRIL 1 DER-IZQ
-        if random.random() < 0.1:
+        if random.random() < 0.25 * s:
             self.add_vehicle(self.cols -1, self.rows // 2 + 1, -1, 0, COLOR_AUTO_H)
         #CARRIL 2 DER-IZQ
-        if random.random() < 0.05:
+        if random.random() < 0.15 * s:
             self.add_vehicle(self.cols -1, self.rows // 2 +2, -1, 0, COLOR_AUTO_H)      
 
         #CARRIL 1 ABAJO-ARRIBA
-        if random.random() < 0.1:
+        if random.random() < 0.25 * s:
            self.add_vehicle(self.cols // 2 -2, self.rows - 1, 0, -1, COLOR_AUTO_V) # Columna cx + 1
         #CARRIL 2 ABAJO-ARRIBA
-        if random.random() < 0.07:
+        if random.random() < 0.2 * s:
             self.add_vehicle(self.cols // 2 -1, self.rows - 1, 0, -1, COLOR_AUTO_V)
         # CARRIL 1 ARRIBA-ABAJO
-        if random.random() < 0.07:
+        if random.random() < 0.2 * s:
             self.add_vehicle(self.cols // 2 + 2, 0, 0, 1, COLOR_AUTO_V)
         # CARRIL 2 ARRIBA-ABAJO
-        if random.random() < 0.09:
+        if random.random() < 0.27 * s:
             self.add_vehicle(self.cols // 2 +1, 0, 0, 1, COLOR_AUTO_V)
+
 
 
     def draw(self, screen):
@@ -396,10 +438,16 @@ def main():
     boton_reset = pygame.Rect(20, 80, 150, 50)
     boton_pausa = pygame.Rect(20, 140, 150, 50)
 
+    #SLIDER
+    # SLIDER (controlar spawn de autos)
+    slider_autos = Slider(20, 280, 200, 20, min_val=0, max_val=100, start_val=30)
+
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            
+            slider_autos.handle_event(event)
 
             # clic botones  <- cuidado con la indentación: debe alinearse con el if anterior
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -434,12 +482,15 @@ def main():
                         paused = not paused
 
         # SI LA SIMULACIÓN ESTÁ ACTIVADA Y NO ESTÁ EN PAUSA → avanzar
+        # actualizar la escala de spawn desde el slider (valor entre 0 y 1)
+        grid.spawn_scale = slider_autos.value / 100.0
+
         if started and not paused:
             grid.update()
 
         grid.draw(screen)
         
-         #Caja blanca y texto del contador debajo de los botones
+        #Caja blanca y texto del contador debajo de los botones
         contador_rect = pygame.Rect(20, 200, 200, 50)
         pygame.draw.rect(screen, (255, 255, 255), contador_rect)
         pygame.draw.rect(screen, (0, 0, 0), contador_rect, 2)
@@ -452,8 +503,12 @@ def main():
         draw_button(screen, boton_reset, "REINICIAR")
         draw_button(screen, boton_pausa, "REANUDAR" if paused else "PAUSA")
 
+        # Dibujar slider
+        slider_autos.draw(screen)
+
         pygame.display.flip()
         clock.tick(FPS)
+
 
     pygame.quit()
     sys.exit()
