@@ -1,4 +1,6 @@
-﻿# Proyecto-Final-Autómatas-Grupo-3
+<img width="851" height="496" alt="PNG PORTADA PROYECTOpng" src="https://github.com/user-attachments/assets/2a59187c-bea2-4cc4-a78e-c938f1b82410" />
+
+ # Proyecto-Final-Autómatas-Grupo-3
 
 ## Simulador de Tráfico con Autómatas Celulares
 
@@ -23,4 +25,5 @@ En este proyecto se realizó la simulación de una intersección vial controlada
 
 ## LINK DEL VIDEO DE YOUTUBE 
 https://www.youtube.com/watch?v=QZ0dpbaYgKA
+
 
