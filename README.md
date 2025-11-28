@@ -19,3 +19,7 @@ En este proyecto se realizó la simulación de una intersección vial controlada
 -	Si la celda a la que desea moverse es igual a la de otro vehículo del mismo tipo, se elige uno al azar para ocuparla.
 -	Si la celda siguiente está ocupada por un vehículo de otro tipo se presenta una colisión.
 -	Si la celda siguiente está fuera de la cuadrícula, el vehículo desaparece.
+
+
+##LINK DEL VIDEO DE YOUTUBE 
+https://www.youtube.com/watch?v=QZ0dpbaYgKA
