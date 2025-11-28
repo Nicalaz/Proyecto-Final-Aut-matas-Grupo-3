@@ -5,7 +5,7 @@ import sys
 # --- Configuración general ---
 ANCHO, ALTO = 900, 900
 TAM_CELDA = 20
-FPS = 8 #velocidad de los autos
+FPS = 30 #velocidad de los autos
 
 COLOR_FONDO = (40, 40, 40)
 COLOR_CARRETERA = (90, 90, 90)
@@ -105,12 +105,6 @@ class Grid:
         self.lights = []
         self.collision_count = 0  #contador de colisiones
 
-        # --- VARIABLES DE EMERGENCIA ---
-        self.stop_all = False
-        self.stop_timer = 0
-        self.stop_duration = 80            # 10 segundos 
-        self.next_stop_threshold = 10      # detenerse en 10, luego 20, 30...
-    
     def add_light(self, x, y, horizontal=True, cycle=15):
         self.lights.append(TrafficLight(x, y, horizontal, cycle))
 
@@ -122,17 +116,6 @@ class Grid:
 
 
     def update(self):
-        # BLOQUEO DE EMERGENCIA
-        if self.stop_all:
-            for l in self.lights:
-                l.state = 4  # todos en rojo
-
-            self.stop_timer -= 1
-
-            if self.stop_timer <= 0:
-                self.stop_all = False
-
-            return  # evitar movimientos mientras dura la emergencia
         # Actualizar semáforos
         for l in self.lights:
             l.update()
@@ -214,13 +197,6 @@ class Grid:
                 eliminar.add(v)
                 eliminar.add(otro)
                 self.collision_count += 1  #Sumamos una colisión
-
-                # DETENER CADA 10 COLISIONES EXACTAS
-                if self.collision_count >= self.next_stop_threshold:
-                    self.stop_all = True
-                    self.stop_timer = self.stop_duration
-                    self.next_stop_threshold += 10   # preparar siguiente detención
-            
             elif accion == "move":
                 mover.append((v, destino))
 
@@ -340,12 +316,6 @@ class Grid:
             )
 
         dibujar_explosiones(screen)
-        # ALERTA VISUAL DE EMERGENCIA
-        if self.stop_all:
-            font_alert = pygame.font.SysFont(None, 70)
-            texto = font_alert.render("EMERGENCIA: TRÁFICO DETENIDO", True, (255, 0, 0)) 
-            rect = texto.get_rect(center=(ANCHO // 2, ALTO // 2))
-            screen.blit(texto, rect)
         #Botones inicio, pausa y reinicio
 def draw_button(screen, rect, text):
         pygame.draw.rect(screen, (255,255,255), rect)
